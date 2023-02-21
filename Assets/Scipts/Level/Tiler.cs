@@ -24,14 +24,9 @@ public class Tiler : MonoBehaviour
 	private static List<Vector2Int> cells = new List<Vector2Int>();
 	private static List<Vector2Int> enteredWord = new List<Vector2Int>();
 
-	private static readonly List<Color> colors = new List<Color>() {
-		Color.green,
-		Color.blue,
-		Color.yellow,
-		Color.red,
-		Color.magenta,
-		Color.cyan
-	};
+	private static List<Color> colors = new List<Color>();
+
+	private static int choosenColorsCount = 0;
 
 	private static Color currentColor = Color.white;
 
@@ -39,12 +34,25 @@ public class Tiler : MonoBehaviour
 	private static Vector2Int lastCell = Vector2Int.zero;
 
 	private void Awake() {
+		AddColors(new List<string>() {
+			"#AB274F", "#2F4F4F", "#990066", "#79553D", "#1E5945", "#003153", "#1E5945", "#A5260A", "#CD7F32", "#256D7B",
+			"#702963", "#425E17", "#025669"
+		});
+
 		tilemap = GetComponent<Tilemap>();
 		lineRenderer = GetComponentInChildren<LineRenderer>();
 		currentLine = lineRenderer;
 		lineParent = lineRenderer.transform.parent;
 		lineRenderer.positionCount = 0;
 		fieldTile = fieldTileBase;
+	}
+
+	private void AddColors(List<string> htmlStrings) {
+		foreach (var htmlString in htmlStrings ) {
+			if ( ColorUtility.TryParseHtmlString(htmlString, out Color color) ) {
+				colors.Add(color);
+			}
+		}
 	}
 
 	private static Vector3 CellCenter(Vector2Int v) {
@@ -94,6 +102,7 @@ public class Tiler : MonoBehaviour
 	}
 
 	public static void BuildLevel(int n, Preset preset, int sentenceLength) {
+		choosenColorsCount = 0;
 		ClearLines();
 		Fill(null);
 		filledCells.Clear();
@@ -127,14 +136,22 @@ public class Tiler : MonoBehaviour
 		LetterMaster.SetColor(v.x, v.y, Color.black);
 	}
 
+	private static void FixColor() {
+		Color color = colors[choosenColorsCount];
+		colors[choosenColorsCount] = currentColor;
+		choosenColorsCount++;
+		currentColor = color;
+	}
+
 	public static void FillWord(List<Vector2Int> vs) {
 		enteredWord = new List<Vector2Int>(vs);
-		currentColor = colors[Random.Range(0, colors.Count)];
+		currentColor = colors[Random.Range(choosenColorsCount, colors.Count)];
 		UpdateColors();
 		AddLine();
 		filledCells.AddRange(enteredWord);
 		enteredWord.Clear();
 		UpdateColors();
+		FixColor();
 		currentColor = Color.white;
 	}
 
@@ -145,7 +162,7 @@ public class Tiler : MonoBehaviour
 			if ( !filledCells.Contains(mouseCell) ) {
 				enteredWord.Clear();
 				isRightStarted = IsFilled(mouseCell);
-				currentColor = colors[Random.Range(0, colors.Count)];
+				currentColor = colors[Random.Range(choosenColorsCount, colors.Count)];
 			}
 		}
 		else if ( Input.GetMouseButton(0) ) {
@@ -175,6 +192,7 @@ public class Tiler : MonoBehaviour
 			}
 			else {
 				if ( !finished ) {
+					FixColor();
 					AddLine();
 					filledCells.AddRange(enteredWord);
 				}
